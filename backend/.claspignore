@@ -1,0 +1,20 @@
+# File yang TIDAK ikut di-push ke Apps Script.
+# Pola relatif terhadap rootDir.
+
+**/**
+
+# Whitelist yang boleh di-push:
+!*.js
+!appsscript.json
+!server/**.js
+!models/**.js
+!controllers/**.js
+
+# Tetap dikecualikan walau cocok di atas:
+.clasp.json
+.claspignore
+.gitignore
+node_modules/**
+**/*.test.js
+README.md
+.task.md
