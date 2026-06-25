@@ -1,87 +1,44 @@
-:root {
-  --color-bg: #0f172a;
+@import 'tailwindcss';
+
+/* Aktifkan dark mode berbasis class (.dark di <html>), bukan prefers. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Token warna semantik — nilai LIGHT (default). */
+@theme {
+  --color-canvas: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-elevated: #ffffff;
+  --color-line: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+
+  --animate-toast-in: toast-in 0.18s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Override nilai token untuk tema DARK. */
+.dark {
+  --color-canvas: #0f172a;
   --color-surface: #1e293b;
-  --color-text: #e2e8f0;
+  --color-elevated: #111827;
+  --color-line: #334155;
+  --color-ink: #e2e8f0;
   --color-muted: #94a3b8;
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --radius: 8px;
-
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: var(--color-text);
-  background-color: var(--color-bg);
-  line-height: 1.5;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-}
-
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-}
-
-.layout {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.layout__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--color-surface);
-}
-
-.layout__brand {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--color-text);
-}
-
-.layout__nav {
-  display: flex;
-  gap: 1rem;
-}
-
-.layout__nav a[aria-current='page'] {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.layout__main {
-  padding: 2rem 0;
-}
-
-.page h1 {
-  margin-top: 0;
-}
-
-.button {
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: var(--radius);
-  background-color: var(--color-primary);
-  color: #fff;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-.button:hover {
-  background-color: var(--color-primary-hover);
-  text-decoration: none;
+@layer base {
+  body {
+    @apply min-h-screen bg-canvas text-ink antialiased;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
 }

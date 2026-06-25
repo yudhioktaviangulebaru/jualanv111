@@ -28,6 +28,10 @@ class BaseServer {
     this.resource('product', new ProdukController());
     this.resource('user', new UserController());
     this.resource('warehouse', new WarehouseController());
+    this.resource('stock', new StockController());
+
+    this.resource('stockin', new StockInController());
+    this.resource('transaction', new TransactionController());
 
     var auth = new AuthController();
     this.onPost('login', function (body) { return auth.login(body); });
@@ -82,6 +86,7 @@ class BaseServer {
    * @return {TextOutput}
    */
   handleGet(e) {
+    RequestContext.reset();
     return this._dispatch(this.getRoutes, this._parseParams(e), 'GET');
   }
 
@@ -91,6 +96,7 @@ class BaseServer {
    * @return {TextOutput}
    */
   handlePost(e) {
+    RequestContext.reset();
     return this._dispatch(this.postRoutes, this._parseBody(e), 'POST');
   }
 
@@ -107,6 +113,12 @@ class BaseServer {
 
       if (!handler) {
         return BaseServer.fail(404, 'Action tidak dikenal: "' + action + '" (' + method + ')');
+      }
+
+      // Semua action butuh autentikasi kecuali yang publik (ping, login).
+      // Verifikasi id_token -> set user aktif -> worksheet datanya terbuka via context.
+      if (!BaseServer.PUBLIC_ACTIONS[action]) {
+        RequestContext.setUser(AuthController.authenticate(payload));
       }
 
       var out = handler.call(this, payload);
@@ -158,3 +170,6 @@ class BaseServer {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+/** Action yang tidak butuh autentikasi (tanpa id_token). */
+BaseServer.PUBLIC_ACTIONS = { ping: true, login: true };

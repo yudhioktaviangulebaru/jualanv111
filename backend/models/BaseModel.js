@@ -24,19 +24,17 @@ class BaseModel {
 
   /**
    * Ambil semua baris sebagai array object (tanpa data terhapus).
+   * Sumber data: cache in-memory (lihat bagian cache). Sheet hanya dibaca
+   * sekali (saat cache kosong); selanjutnya dilayani dari variabel.
    * @param {{withTrashed?: boolean}} [opts] sertakan data ter-soft-delete.
    */
   all(opts) {
     opts = opts || {};
-    var sheet = this._sheet();
-    var values = sheet.getDataRange().getValues();
-    if (values.length < 2) return [];
-    var headers = values[0];
-    var rows = values.slice(1).map(function (row) {
-      return BaseModel.rowToObject(headers, row);
-    });
+    var rows = this._cached();
     if (!opts.withTrashed) {
       rows = rows.filter(function (r) { return !r.deleted_at; });
+    } else {
+      rows = rows.slice();
     }
     return rows;
   }
@@ -72,6 +70,7 @@ class BaseModel {
       sheet.appendRow(headers.map(function (h) {
         return record[h] !== undefined ? record[h] : '';
       }));
+      this._cacheUpsert(record);
       return record;
     } finally {
       lock.releaseLock();
@@ -87,6 +86,7 @@ class BaseModel {
     record.created_at = found.record.created_at;
     record.updated_at = new Date().toISOString();
     this._writeRow(found.sheet, found.rowNumber, record);
+    this._cacheUpsert(record);
     return record;
   }
 
@@ -100,6 +100,7 @@ class BaseModel {
     record.updated_at = new Date().toISOString();
     this._writeRow(found.sheet, found.rowNumber, record);
     found.sheet.hideRows(found.rowNumber);
+    this._cacheUpsert(record);
     return true;
   }
 
@@ -113,7 +114,114 @@ class BaseModel {
     record.updated_at = new Date().toISOString();
     this._writeRow(found.sheet, found.rowNumber, record);
     found.sheet.showRows(found.rowNumber);
+    this._cacheUpsert(record);
     return record;
+  }
+
+  /* ----------------------------- cache ----------------------------- */
+  /**
+   * Cache dua tingkat, isinya SEMUA record (termasuk yang ter-soft-delete);
+   * filter `deleted_at` dilakukan saat baca di all().
+   *
+   * - L1: variabel statis `BaseModel._caches`, dibagikan antar instance
+   *   dalam satu eksekusi. Tercepat, tapi reset tiap request baru.
+   * - L2: CacheService.getScriptCache(), bertahan antar request (maks 6 jam)
+   *   sehingga hit frontend berikutnya tidak perlu baca sheet.
+   *
+   * Tiap create/update/remove/restore meng-upsert record ke kedua layer,
+   * jadi cache selalu sinkron tanpa membaca ulang sheet.
+   */
+
+  /** Ambil seluruh record: L1 -> L2 -> sheet. @private @return {Object[]} */
+  _cached() {
+    var key = this._cacheKey();
+    var l1 = BaseModel._caches[key];
+    if (l1) return l1;
+
+    var l2 = this._l2Get();
+    if (l2) {
+      BaseModel._caches[key] = l2; // promosikan ke L1
+      return l2;
+    }
+
+    return this._reload();
+  }
+
+  /** Baca ulang seluruh sheet, isi L1 + L2. @private @return {Object[]} */
+  _reload() {
+    var sheet = this._sheet();
+    var values = sheet.getDataRange().getValues();
+    var records = [];
+    if (values.length >= 2) {
+      var headers = values[0];
+      for (var i = 1; i < values.length; i++) {
+        records.push(BaseModel.rowToObject(headers, values[i]));
+      }
+    }
+    BaseModel._caches[this._cacheKey()] = records;
+    this._l2Put(records);
+    return records;
+  }
+
+  /**
+   * Sisipkan atau ganti satu record di cache berdasarkan id, lalu persist
+   * ke L2. Memastikan cache termuat dulu agar L1 & L2 tetap utuh. @private
+   */
+  _cacheUpsert(record) {
+    var cache = this._cached(); // pastikan termuat (L1/L2/sheet)
+    var replaced = false;
+    for (var i = 0; i < cache.length; i++) {
+      if (String(cache[i].id) === String(record.id)) {
+        cache[i] = record;
+        replaced = true;
+        break;
+      }
+    }
+    if (!replaced) cache.push(record);
+    this._l2Put(cache);
+  }
+
+  /** Kosongkan cache sheet ini di kedua layer. @private */
+  _invalidate() {
+    delete BaseModel._caches[this._cacheKey()];
+    try { CacheService.getScriptCache().remove(this._l2Key()); } catch (e) {}
+  }
+
+  /**
+   * Kunci cache unik per spreadsheet + sheet. Wajib menyertakan id spreadsheet
+   * supaya cache tiap worksheet user tidak saling tabrakan (sheetName seperti
+   * 'products' sama di semua worksheet). @private
+   */
+  _cacheKey() {
+    return this._spreadsheet().getId() + ':' + this.sheetName;
+  }
+
+  /** Kunci entri L2 untuk sheet ini. @private */
+  _l2Key() {
+    return 'model:' + this._cacheKey();
+  }
+
+  /** Baca L2; null bila kosong / gagal parse. @private @return {Object[]|null} */
+  _l2Get() {
+    try {
+      var raw = CacheService.getScriptCache().get(this._l2Key());
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Tulis L2. Diabaikan bila gagal (mis. data > 100KB, batas CacheService);
+   * L1 + sheet tetap jadi sumber yang valid. @private
+   */
+  _l2Put(records) {
+    try {
+      CacheService.getScriptCache().put(
+        this._l2Key(), JSON.stringify(records), BaseModel.CACHE_TTL);
+    } catch (e) {
+      // lewati L2; jangan gagalkan operasi tulis hanya karena cache
+    }
   }
 
   /* --------------------------- internal --------------------------- */
@@ -179,7 +287,7 @@ class BaseModel {
 
   /** Ambil / buat sheet beserta header (sinkron kolom yang kurang). @private */
   _sheet() {
-    var ss = BaseModel.spreadsheet();
+    var ss = this._spreadsheet();
     var sheet = ss.getSheetByName(this.sheetName);
     if (!sheet) {
       sheet = ss.insertSheet(this.sheetName);
@@ -198,8 +306,17 @@ class BaseModel {
     return sheet;
   }
 
-  /** Spreadsheet aktif (bound) — ganti ke openById bila standalone. */
-  static spreadsheet() {
+  /**
+   * Spreadsheet target untuk model ini. Default: worksheet data milik user
+   * aktif (lihat RequestContext). Model tabel global seperti User meng-override
+   * ini agar memakai spreadsheet utama. @protected
+   */
+  _spreadsheet() {
+    return RequestContext.dataSpreadsheet();
+  }
+
+  /** Spreadsheet utama (bound) tempat tabel global seperti `users` disimpan. */
+  static mainSpreadsheet() {
     return SpreadsheetApp.getActiveSpreadsheet();
   }
 
@@ -210,3 +327,12 @@ class BaseModel {
     return obj;
   }
 }
+
+/**
+ * L1: cache in-memory bersama (per eksekusi), dipetakan per nama sheet.
+ * @type {Object<string, Object[]>}
+ */
+BaseModel._caches = {};
+
+/** TTL L2 (CacheService) dalam detik. Maks Apps Script = 21600 (6 jam). */
+BaseModel.CACHE_TTL = 21600;

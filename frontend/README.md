@@ -6,6 +6,7 @@ Base SPA built with **Preact + TypeScript + Vite**, talking to the Google Apps S
 
 - [Preact](https://preactjs.com/) — UI
 - [preact-iso](https://github.com/preactjs/preact-iso) — routing
+- [@remixicon/react](https://remixicon.com/) — icons (tree-shaken via `preact/compat` alias)
 - [TypeScript](https://www.typescriptlang.org/) — strict mode
 - [Vite](https://vite.dev/) — dev server & build
 
@@ -13,9 +14,26 @@ Base SPA built with **Preact + TypeScript + Vite**, talking to the Google Apps S
 
 ```bash
 npm install
-cp .env.example .env   # then set VITE_API_BASE_URL to your GAS /exec URL
+cp .env.example .env   # set VITE_BACKEND_URL and VITE_GOOGLE_CLIENT_ID
 npm run dev            # http://localhost:5173
 ```
+
+## Login with Google
+
+The app authenticates via Google Identity Services (GIS):
+
+1. The Google button (`src/components/GoogleSignInButton.tsx`) returns an ID
+   token (JWT).
+2. `AuthContext.loginWithGoogle` posts it to the backend
+   (`{ action:"login", id_token }`), which verifies it and returns the user.
+3. The user is persisted to `localStorage`; `RequireAuth` guards routes and
+   redirects unauthenticated visitors to `/login`.
+
+**Setup:** in Google Cloud Console create an OAuth 2.0 **Web application**
+client, add `http://localhost:5173` to *Authorized JavaScript origins*, and put
+the client ID in `VITE_GOOGLE_CLIENT_ID`. The same ID must be set as
+`AuthController.CLIENT_ID` in the backend. Note: the backend only logs in users
+whose email already exists in the `users` sheet — it does not auto-create them.
 
 ## Scripts
 
