@@ -32,6 +32,7 @@ import { TransactionDelete } from './pages/transaksi/TransactionDelete';
 import { PenggunaList } from './pages/pengguna/PenggunaList';
 import { PenggunaCreate } from './pages/pengguna/PenggunaCreate';
 import { PenggunaView } from './pages/pengguna/PenggunaView';
+import { LaporanKasir } from './pages/laporan/LaporanKasir';
 import { NoAccess } from './pages/NoAccess';
 import { NotFound } from './pages/NotFound';
 
@@ -121,7 +122,10 @@ export function App() {
               <Route path="/transaksi/:id/delete" component={protectedPage(TransactionDelete, { menu: 'cashier', action: 'delete' })} />
               <Route path="/transaksi/:id" component={protectedPage(TransactionView, { menu: 'cashier' })} />
 
-              {/* Pengguna — hanya admin (lihat permissions) */}
+              {/* Laporan kasir / closing — Owner (semua kasir) & kasir (sendiri) */}
+              <Route path="/laporan" component={protectedPage(LaporanKasir, { menu: 'laporan' })} />
+
+              {/* Pengguna — hanya Owner (lihat permissions) */}
               <Route path="/pengguna" component={protectedPage(PenggunaList, { menu: 'pengguna' })} />
               <Route path="/pengguna/create" component={protectedPage(PenggunaCreate, { menu: 'pengguna', action: 'create' })} />
               <Route path="/pengguna/:id" component={protectedPage(PenggunaView, { menu: 'pengguna' })} />

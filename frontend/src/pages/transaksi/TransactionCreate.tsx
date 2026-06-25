@@ -2,6 +2,7 @@ import { useLocation } from 'preact-iso';
 import { RiArrowLeftLine } from '@remixicon/react';
 import { useCreateTransaction } from '@/hooks/useTransactions';
 import type { TransactionInput } from '@/types/transaction';
+import { printReceipt, type ReceiptData } from '@/lib/receipt';
 import { Card } from '@/components/ui';
 import { useToast } from '@/components/toast/ToastProvider';
 import { TransactionForm } from './TransactionForm';
@@ -11,10 +12,11 @@ export function TransactionCreate() {
   const toast = useToast();
   const { create, submitting, error } = useCreateTransaction();
 
-  const handleSubmit = async (values: TransactionInput) => {
+  const handleSubmit = async (values: TransactionInput, receipt?: ReceiptData) => {
     try {
       const created = await create(values);
       toast.success('Transaksi penjualan berhasil disimpan.');
+      if (receipt) printReceipt({ ...receipt, transactionId: created.id });
       route(`/transaksi/${created.id}`);
     } catch {
       // Pesan kegagalan ditampilkan lewat `error`.
@@ -22,7 +24,7 @@ export function TransactionCreate() {
   };
 
   return (
-    <div class="mx-auto max-w-3xl">
+    <div>
       <a
         href="/transaksi"
         class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink hover:no-underline"

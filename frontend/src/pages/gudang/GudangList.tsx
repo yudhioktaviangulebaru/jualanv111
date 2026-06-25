@@ -8,6 +8,7 @@ import {
 } from '@remixicon/react';
 import { listWarehouses } from '@/api/warehouse';
 import { useAsync } from '@/hooks/useAsync';
+import { usePermissions } from '@/hooks/usePermissions';
 import { formatDate } from '@/lib/format';
 import {
   buttonClass,
@@ -20,6 +21,7 @@ import {
 
 export function GudangList() {
   const { data, loading, error, reload } = useAsync(listWarehouses, []);
+  const { can } = usePermissions();
   const [q, setQ] = useState('');
 
   const filtered = useMemo(() => {
@@ -36,10 +38,12 @@ export function GudangList() {
           <h2 class="m-0 mb-1 text-2xl font-semibold">Gudang</h2>
           <p class="m-0 text-muted">Kelola daftar gudang.</p>
         </div>
-        <a href="/gudang/create" class={buttonClass('primary')}>
-          <RiAddLine size={18} />
-          Tambah Gudang
-        </a>
+        {can('gudang', 'create') && (
+          <a href="/gudang/create" class={buttonClass('primary')}>
+            <RiAddLine size={18} />
+            Tambah Gudang
+          </a>
+        )}
       </div>
 
       <div class="relative mb-4 max-w-xs">
@@ -105,20 +109,24 @@ export function GudangList() {
                         >
                           <RiEyeLine size={18} />
                         </a>
-                        <a
-                          href={`/gudang/${w.id}/edit`}
-                          title="Edit"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-black/5 hover:text-ink dark:hover:bg-white/5"
-                        >
-                          <RiPencilLine size={18} />
-                        </a>
-                        <a
-                          href={`/gudang/${w.id}/delete`}
-                          title="Hapus"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-500/10 hover:text-red-400"
-                        >
-                          <RiDeleteBinLine size={18} />
-                        </a>
+                        {can('gudang', 'edit') && (
+                          <a
+                            href={`/gudang/${w.id}/edit`}
+                            title="Edit"
+                            class="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-black/5 hover:text-ink dark:hover:bg-white/5"
+                          >
+                            <RiPencilLine size={18} />
+                          </a>
+                        )}
+                        {can('gudang', 'delete') && (
+                          <a
+                            href={`/gudang/${w.id}/delete`}
+                            title="Hapus"
+                            class="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-500/10 hover:text-red-400"
+                          >
+                            <RiDeleteBinLine size={18} />
+                          </a>
+                        )}
                       </div>
                     </td>
                   </tr>

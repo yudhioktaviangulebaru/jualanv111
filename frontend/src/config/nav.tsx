@@ -5,6 +5,7 @@ import {
   RiInboxLine,
   RiGroupLine,
   RiShoppingCart2Line,
+  RiFileChartLine,
 } from '@remixicon/react';
 
 import type { Menu } from '@/auth/permissions';
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/gudang', menu: 'gudang', label: 'Gudang', icon: RiStore2Line },
   { path: '/stock-in', menu: 'stock-in', label: 'Stock In', icon: RiInboxLine },
   { path: '/transaksi', menu: 'cashier', label: 'Penjualan', icon: RiShoppingCart2Line },
+  { path: '/laporan', menu: 'laporan', label: 'Laporan Kasir', icon: RiFileChartLine },
   { path: '/pengguna', menu: 'pengguna', label: 'Pengguna', icon: RiGroupLine },
 ];
 

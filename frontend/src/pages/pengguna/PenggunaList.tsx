@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'preact/hooks';
 import { RiAddLine, RiSearchLine, RiEyeLine } from '@remixicon/react';
 import { useUsers } from '@/hooks/useUsers';
+import { roleLabel } from '@/auth/permissions';
 import {
   buttonClass,
   inputClass,
@@ -119,10 +120,9 @@ export function PenggunaList() {
 }
 
 export function RoleBadge({ role }: { role?: string }) {
-  const label = role ? role : '-';
   return (
     <span class="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-medium text-indigo-500 capitalize">
-      {label}
+      {role ? roleLabel(role) : '-'}
     </span>
   );
 }

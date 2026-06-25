@@ -8,6 +8,7 @@ import {
 import { getWarehouse } from '@/api/warehouse';
 import { useAsync } from '@/hooks/useAsync';
 import { useWarehouseStocks } from '@/hooks/useStocks';
+import { usePermissions } from '@/hooks/usePermissions';
 import { formatDate } from '@/lib/format';
 import {
   buttonClass,
@@ -27,6 +28,8 @@ export function GudangView({ id }: { id?: string }) {
     error: stocksError,
     reload: reloadStocks,
   } = useWarehouseStocks(id);
+
+  const { can } = usePermissions();
 
   return (
     <div class="mx-auto max-w-2xl">
@@ -51,14 +54,18 @@ export function GudangView({ id }: { id?: string }) {
                 <p class="m-0 text-sm text-muted">ID #{warehouse.id}</p>
               </div>
               <div class="flex gap-2">
-                <a href={`/gudang/${warehouse.id}/edit`} class={buttonClass('outline')}>
-                  <RiPencilLine size={16} />
-                  Edit
-                </a>
-                <a href={`/gudang/${warehouse.id}/delete`} class={buttonClass('danger')}>
-                  <RiDeleteBinLine size={16} />
-                  Hapus
-                </a>
+                {can('gudang', 'edit') && (
+                  <a href={`/gudang/${warehouse.id}/edit`} class={buttonClass('outline')}>
+                    <RiPencilLine size={16} />
+                    Edit
+                  </a>
+                )}
+                {can('gudang', 'delete') && (
+                  <a href={`/gudang/${warehouse.id}/delete`} class={buttonClass('danger')}>
+                    <RiDeleteBinLine size={16} />
+                    Hapus
+                  </a>
+                )}
               </div>
             </div>
 

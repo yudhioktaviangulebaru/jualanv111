@@ -1,15 +1,23 @@
-import { RiArrowLeftLine, RiBox3Line, RiDeleteBinLine } from '@remixicon/react';
+import {
+  RiArrowLeftLine,
+  RiBox3Line,
+  RiDeleteBinLine,
+  RiPrinterLine,
+} from '@remixicon/react';
 import { useTransaction } from '@/hooks/useTransactions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/auth/AuthContext';
 import { rupiah, formatDate } from '@/lib/format';
+import { printReceipt } from '@/lib/receipt';
 import { buttonClass, Card, Spinner, ErrorState, EmptyState } from '@/components/ui';
 
 export function TransactionView({ id }: { id?: string }) {
   const { data: trx, loading, error, reload } = useTransaction(id);
   const { can } = usePermissions();
+  const { user } = useAuth();
 
   return (
-    <div class="mx-auto max-w-3xl">
+    <div>
       <a
         href="/transaksi"
         class="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink hover:no-underline"
@@ -30,15 +38,38 @@ export function TransactionView({ id }: { id?: string }) {
                 <h2 class="m-0 text-2xl font-semibold">Penjualan #{trx.id}</h2>
                 <p class="m-0 text-sm text-muted">{formatDate(trx.date)}</p>
               </div>
-              {can('cashier', 'delete') && (
-                <a
-                  href={`/transaksi/${trx.id}/delete`}
-                  class={buttonClass('danger', 'px-3 py-1.5')}
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class={buttonClass('outline', 'px-3 py-1.5')}
+                  onClick={() =>
+                    printReceipt({
+                      transactionId: trx.id,
+                      date: trx.date,
+                      cashier: user?.name || user?.email || undefined,
+                      paymentType: trx.payment_type,
+                      total: Number(trx.subtotal),
+                      items: trx.details.map((d) => ({
+                        name: d.product?.name || d.product_name || `Stok #${d.stock_id}`,
+                        qty: Number(d.qty),
+                        price: Number(d.price),
+                      })),
+                    })
+                  }
                 >
-                  <RiDeleteBinLine size={16} />
-                  Hapus
-                </a>
-              )}
+                  <RiPrinterLine size={16} />
+                  Cetak struk
+                </button>
+                {can('cashier', 'delete') && (
+                  <a
+                    href={`/transaksi/${trx.id}/delete`}
+                    class={buttonClass('danger', 'px-3 py-1.5')}
+                  >
+                    <RiDeleteBinLine size={16} />
+                    Hapus
+                  </a>
+                )}
+              </div>
             </div>
 
             <dl class="mb-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2">
