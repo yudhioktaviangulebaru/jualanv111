@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
+import { ImpersonationBanner } from './ImpersonationBanner';
 
 interface DashboardLayoutProps {
   children: ComponentChildren;
@@ -23,6 +24,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div class="flex min-w-0 flex-1 flex-col">
         <Navbar onToggleSidebar={() => setSidebarOpen((o) => !o)} />
+        <ImpersonationBanner />
         <main class="flex-1 p-5 md:p-7">{children}</main>
       </div>
     </div>

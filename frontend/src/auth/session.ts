@@ -7,6 +7,7 @@
  */
 
 const TOKEN_KEY = 'jualanapp.id_token';
+const AS_USER_KEY = 'jualanapp.as_user';
 
 /** Ambil id_token tersimpan, atau null bila belum login. */
 export function getIdToken(): string | null {
@@ -30,6 +31,36 @@ export function setIdToken(token: string): void {
 export function clearIdToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* abaikan */
+  }
+}
+
+/**
+ * Id user yang sedang diimpersonasi admin. Dilampirkan sebagai `as_user` ke tiap
+ * request; backend hanya menurutinya bila pemilik token asli berrole admin.
+ */
+export function getAsUser(): string | null {
+  try {
+    return localStorage.getItem(AS_USER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Set target impersonasi (id user). */
+export function setAsUser(id: string): void {
+  try {
+    localStorage.setItem(AS_USER_KEY, id);
+  } catch {
+    /* abaikan */
+  }
+}
+
+/** Hentikan impersonasi. */
+export function clearAsUser(): void {
+  try {
+    localStorage.removeItem(AS_USER_KEY);
   } catch {
     /* abaikan */
   }

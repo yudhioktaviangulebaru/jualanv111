@@ -118,7 +118,8 @@ class BaseServer {
       // Semua action butuh autentikasi kecuali yang publik (ping, login).
       // Verifikasi id_token -> set user aktif -> worksheet datanya terbuka via context.
       if (!BaseServer.PUBLIC_ACTIONS[action]) {
-        RequestContext.setUser(AuthController.authenticate(payload));
+        var realUser = AuthController.authenticate(payload);
+        RequestContext.setUser(BaseServer.resolveEffectiveUser(realUser, payload));
       }
 
       var out = handler.call(this, payload);
@@ -168,6 +169,31 @@ class BaseServer {
     return ContentService
       .createTextOutput(JSON.stringify(obj))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  /**
+   * Tentukan user efektif sebuah request. Bila request menyertakan `as_user`
+   * (impersonasi) DAN pemilik token asli berrole 'admin', konteks diganti ke
+   * user target sehingga seluruh operasi data berjalan di toko target. Selain
+   * itu, user asli dipakai apa adanya.
+   * @param {Object} realUser user hasil verifikasi id_token.
+   * @param {Object} payload params (GET) / body (POST) request.
+   * @return {Object} user efektif untuk RequestContext.
+   * @private
+   */
+  static resolveEffectiveUser(realUser, payload) {
+    var asUser = payload && payload.as_user;
+    if (!asUser) return realUser;
+
+    if (String(realUser.role || '').toLowerCase() !== 'admin') {
+      throw ApiError.unauthorized('Hanya admin yang dapat impersonate user');
+    }
+
+    var target = new User().find(asUser);
+    if (!target) {
+      throw ApiError.notFound('User impersonate tidak ditemukan: ' + asUser);
+    }
+    return target;
   }
 }
 

@@ -1,5 +1,11 @@
 import { useState, useMemo } from 'preact/hooks';
-import { RiAddLine, RiSearchLine, RiEyeLine } from '@remixicon/react';
+import { useLocation } from 'preact-iso';
+import {
+  RiAddLine,
+  RiSearchLine,
+  RiEyeLine,
+  RiUserSharedLine,
+} from '@remixicon/react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/auth/AuthContext';
 import { roleLabel, normalizeRole } from '@/auth/permissions';
@@ -14,8 +20,9 @@ import {
 
 export function PenggunaList() {
   const { data, loading, error, reload } = useUsers();
-  const { user } = useAuth();
-  const isAdmin = normalizeRole(user?.role) === 'admin';
+  const { realUser, impersonate } = useAuth();
+  const { route } = useLocation();
+  const isAdmin = normalizeRole(realUser?.role) === 'admin';
   const [q, setQ] = useState('');
 
   const filtered = useMemo(() => {
@@ -122,6 +129,19 @@ export function PenggunaList() {
                         >
                           <RiEyeLine size={18} />
                         </a>
+                        {isAdmin && normalizeRole(u.role) !== 'admin' && (
+                          <button
+                            type="button"
+                            title={`Impersonate ${u.name || u.email}`}
+                            class="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-indigo-500/10 hover:text-indigo-500"
+                            onClick={() => {
+                              impersonate(u);
+                              route('/');
+                            }}
+                          >
+                            <RiUserSharedLine size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

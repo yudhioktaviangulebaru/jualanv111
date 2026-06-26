@@ -12,7 +12,7 @@
  * Set the deployed web app URL via VITE_BACKEND_URL in your .env file.
  */
 
-import { getIdToken, notifyUnauthorized } from '@/auth/session';
+import { getIdToken, getAsUser, notifyUnauthorized } from '@/auth/session';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
@@ -78,6 +78,8 @@ async function get<T>(action: string, params: Params = {}): Promise<T> {
   const token = getIdToken();
   if (token && !PUBLIC_ACTIONS.has(action)) {
     url.searchParams.set('id_token', token);
+    const asUser = getAsUser();
+    if (asUser) url.searchParams.set('as_user', asUser);
   }
 
   let res: Response;
@@ -100,9 +102,10 @@ async function post<T>(
   payload: Record<string, unknown> = {},
 ): Promise<T> {
   const token = getIdToken();
+  const asUser = token ? getAsUser() : null;
   const body =
     token && !PUBLIC_ACTIONS.has(action)
-      ? { action, id_token: token, ...payload }
+      ? { action, id_token: token, ...(asUser ? { as_user: asUser } : {}), ...payload }
       : { action, ...payload };
 
   let res: Response;
