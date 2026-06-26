@@ -13,7 +13,9 @@ services:
       - "9000:80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      # Pakai 127.0.0.1 (IPv4), bukan localhost: nginx hanya listen IPv4,
+      # sedangkan 'localhost' bisa resolve ke IPv6 ::1 → connection refused.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 30s
       timeout: 5s
       retries: 3
