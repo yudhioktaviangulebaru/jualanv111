@@ -5,6 +5,9 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# Nilai VITE_* bersifat publik (ikut ter-bundle ke browser), jadi .env.production
+# sengaja di-track agar ikut git → otomatis ada saat deploy/build di GCP.
+!.env.production
 
 # Editor
 .vscode/*
