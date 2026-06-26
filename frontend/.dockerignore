@@ -1,0 +1,24 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+
+# Catatan: .env SENGAJA tidak diabaikan agar Vite memakai env yang sama dengan
+# dev saat build. Isinya VITE_* publik (URL backend & Google Client ID), bukan
+# rahasia. Abaikan hanya varian lokal.
+.env.local
+.env.*.local
+
+# Artefak Docker & build
+Dockerfile
+docker-compose.yml
+.dockerignore
+tsconfig.tsbuildinfo
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+*.log
+.task.md

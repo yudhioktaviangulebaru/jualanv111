@@ -28,6 +28,10 @@ class BaseServer {
     this.resource('product', new ProdukController());
     this.resource('user', new UserController());
     this.resource('warehouse', new WarehouseController());
+    this.resource('stock', new StockController());
+
+    this.resource('stockin', new StockInController());
+    this.resource('transaction', new TransactionController());
 
     var auth = new AuthController();
     this.onPost('login', function (body) { return auth.login(body); });
@@ -82,6 +86,7 @@ class BaseServer {
    * @return {TextOutput}
    */
   handleGet(e) {
+    RequestContext.reset();
     return this._dispatch(this.getRoutes, this._parseParams(e), 'GET');
   }
 
@@ -91,6 +96,7 @@ class BaseServer {
    * @return {TextOutput}
    */
   handlePost(e) {
+    RequestContext.reset();
     return this._dispatch(this.postRoutes, this._parseBody(e), 'POST');
   }
 
@@ -107,6 +113,13 @@ class BaseServer {
 
       if (!handler) {
         return BaseServer.fail(404, 'Action tidak dikenal: "' + action + '" (' + method + ')');
+      }
+
+      // Semua action butuh autentikasi kecuali yang publik (ping, login).
+      // Verifikasi id_token -> set user aktif -> worksheet datanya terbuka via context.
+      if (!BaseServer.PUBLIC_ACTIONS[action]) {
+        var realUser = AuthController.authenticate(payload);
+        RequestContext.setUser(BaseServer.resolveEffectiveUser(realUser, payload));
       }
 
       var out = handler.call(this, payload);
@@ -157,4 +170,32 @@ class BaseServer {
       .createTextOutput(JSON.stringify(obj))
       .setMimeType(ContentService.MimeType.JSON);
   }
+
+  /**
+   * Tentukan user efektif sebuah request. Bila request menyertakan `as_user`
+   * (impersonasi) DAN pemilik token asli berrole 'admin', konteks diganti ke
+   * user target sehingga seluruh operasi data berjalan di toko target. Selain
+   * itu, user asli dipakai apa adanya.
+   * @param {Object} realUser user hasil verifikasi id_token.
+   * @param {Object} payload params (GET) / body (POST) request.
+   * @return {Object} user efektif untuk RequestContext.
+   * @private
+   */
+  static resolveEffectiveUser(realUser, payload) {
+    var asUser = payload && payload.as_user;
+    if (!asUser) return realUser;
+
+    if (String(realUser.role || '').toLowerCase() !== 'admin') {
+      throw ApiError.unauthorized('Hanya admin yang dapat impersonate user');
+    }
+
+    var target = new User().find(asUser);
+    if (!target) {
+      throw ApiError.notFound('User impersonate tidak ditemukan: ' + asUser);
+    }
+    return target;
+  }
 }
+
+/** Action yang tidak butuh autentikasi (tanpa id_token). */
+BaseServer.PUBLIC_ACTIONS = { ping: true, login: true };

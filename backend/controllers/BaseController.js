@@ -49,4 +49,15 @@ class BaseController {
     if (!record) throw ApiError.notFound('Data tidak ditemukan: ' + body.id);
     return Result.ok(record);
   }
+
+  /**
+   * Bangun map { id -> record } untuk lookup relasi yang cepat.
+   * @param {Object[]} rows
+   * @return {Object<string, Object>}
+   */
+  static indexById(rows) {
+    var map = {};
+    rows.forEach(function (r) { map[String(r.id)] = r; });
+    return map;
+  }
 }

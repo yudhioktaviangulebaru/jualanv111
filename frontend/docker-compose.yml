@@ -1,0 +1,20 @@
+# Docker Compose khusus frontend (Vite + Preact → nginx).
+#
+# Build memakai file .env yang sama dengan dev (Vite membacanya langsung saat
+# `vite build`). Ubah .env lalu `docker compose up --build` untuk menerapkannya.
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jualanapp-frontend
+    container_name: jualanapp-frontend
+    ports:
+      - "9000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

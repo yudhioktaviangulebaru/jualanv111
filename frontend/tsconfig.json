@@ -27,7 +27,10 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "react": ["./node_modules/preact/compat/src/index.d.ts"],
+      "react-dom": ["./node_modules/preact/compat/src/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/preact/jsx-runtime/src/index.d.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]
