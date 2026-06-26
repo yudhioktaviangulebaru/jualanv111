@@ -13,8 +13,9 @@
  */
 
 import { getIdToken, getAsUser, notifyUnauthorized } from '@/auth/session';
+import { BACKEND_URL } from '@/config/app';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
+const BASE_URL = BACKEND_URL;
 
 /**
  * Action publik yang TIDAK dilampiri id_token: `login` (token belum ada saat

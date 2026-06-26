@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { RiGoogleFill } from '@remixicon/react';
 import { loadGsi } from '@/lib/gsi';
+import { GOOGLE_CLIENT_ID } from '@/config/app';
 import type { CredentialResponse } from '@/types/google-accounts';
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
+const CLIENT_ID = GOOGLE_CLIENT_ID;
 
 interface GoogleSignInButtonProps {
   /** Called with the Google ID token (JWT) when the user signs in. */
