@@ -2,21 +2,17 @@
  * auth/permissions.ts
  * Hak akses berbasis role (RBAC) — logika murni, tanpa dependensi React.
  *
- * Sumber: tabel hak akses pada .task.md.
- *   admin (Owner) -> semua menu & aksi (*); hanya bisa menambah kasir & gudang
- *   kasir         -> Cashier (penuh), Product (view), Gudang/cek stok (view),
- *                    Laporan kasir (view — closing miliknya sendiri)
- *   gudang        -> Stock In (view + create), Product (view + create),
- *                    Gudang/cek stok (view)
- *   guest         -> tidak ada akses
- *
- * Catatan: peran tertinggi disimpan sebagai 'admin' di backend, tetapi
- * ditampilkan sebagai "Owner" di UI (lihat roleLabel).
- *
- * Role tak dikenal (mis. 'user') diperlakukan sebagai guest.
+ * Empat role berbeda (lihat .task.md):
+ *   admin  -> superadmin platform: kelola SEMUA user (termasuk owner),
+ *             dashboard lintas toko (count owner/kasir/toko). Akses excel utama.
+ *   owner  -> pemilik toko: hanya tokonya sendiri (worksheet-nya). Kelola user
+ *             kasir & gudang, lihat laporan kasir, dan seluruh menu toko.
+ *   kasir  -> cek stok, transaksi penjualan, closing miliknya sendiri.
+ *   gudang -> cek stok, stock in.
+ *   guest  -> tidak ada akses (role tak dikenal diperlakukan sebagai guest).
  */
 
-export type Role = 'admin' | 'kasir' | 'gudang' | 'guest';
+export type Role = 'admin' | 'owner' | 'kasir' | 'gudang' | 'guest';
 export type Menu =
   | 'dashboard'
   | 'produk'
@@ -27,19 +23,12 @@ export type Menu =
   | 'laporan';
 export type Action = 'view' | 'create' | 'edit' | 'delete';
 
-/**
- * Pilihan role saat Owner membuat user. Owner hanya boleh menambah kasir &
- * gudang — bukan Owner lain maupun guest (lihat .task.md / UserController).
- */
-export const ROLE_OPTIONS: Array<{ value: Role; label: string }> = [
-  { value: 'kasir', label: 'Kasir' },
-  { value: 'gudang', label: 'Gudang' },
-];
-
-/** Label tampilan role — 'admin' disebut "Owner" di UI. */
+/** Label tampilan role. */
 export function roleLabel(role: string | null | undefined): string {
   switch (normalizeRole(role)) {
     case 'admin':
+      return 'Admin';
+    case 'owner':
       return 'Owner';
     case 'kasir':
       return 'Kasir';
@@ -50,12 +39,30 @@ export function roleLabel(role: string | null | undefined): string {
   }
 }
 
+/**
+ * Role yang boleh dibuat oleh `role` saat menambah user.
+ * - admin → owner, kasir, gudang
+ * - owner → kasir, gudang
+ * - lainnya → tidak boleh menambah user
+ */
+export function creatableRoles(role: Role): Array<{ value: Role; label: string }> {
+  const all: Array<{ value: Role; label: string }> = [
+    { value: 'owner', label: 'Owner' },
+    { value: 'kasir', label: 'Kasir' },
+    { value: 'gudang', label: 'Gudang' },
+  ];
+  if (role === 'admin') return all;
+  if (role === 'owner') return all.filter((r) => r.value !== 'owner');
+  return [];
+}
+
 /** Normalisasi nilai role mentah dari backend → Role yang dikenal. */
 export function normalizeRole(role: string | null | undefined): Role {
   switch ((role ?? '').trim().toLowerCase()) {
     case 'admin':
-    case 'owner':
       return 'admin';
+    case 'owner':
+      return 'owner';
     case 'kasir':
       return 'kasir';
     case 'gudang':
@@ -66,33 +73,43 @@ export function normalizeRole(role: string | null | undefined): Role {
 }
 
 type ActionSet = ReadonlySet<Action>;
+const ALL: ActionSet = new Set<Action>(['view', 'create', 'edit', 'delete']);
 
-/** Hak akses tiap role non-admin. Menu yang tidak tercantum = tidak boleh. */
-const NON_ADMIN: Record<Exclude<Role, 'admin'>, Partial<Record<Menu, ActionSet>>> =
-  {
-    kasir: {
-      // Kasir boleh lihat & buat transaksi, TAPI tidak boleh menghapus
-      // (transaksi yang sudah tercatat hanya bisa dihapus Owner).
-      cashier: new Set<Action>(['view', 'create']),
-      produk: new Set<Action>(['view']),
-      // Cek stok lewat menu Gudang (hanya lihat).
-      gudang: new Set<Action>(['view']),
-      // Closing/laporan untuk dirinya sendiri (difilter di halaman).
-      laporan: new Set<Action>(['view']),
-    },
-    gudang: {
-      'stock-in': new Set<Action>(['view', 'create']),
-      produk: new Set<Action>(['view', 'create']),
-      // Cek stok lewat menu Gudang (hanya lihat).
-      gudang: new Set<Action>(['view']),
-    },
-    guest: {},
-  };
+/** Hak akses eksplisit tiap role. Menu yang tidak tercantum = tidak boleh. */
+const ACL: Record<Role, Partial<Record<Menu, ActionSet>>> = {
+  // Platform: hanya dashboard lintas toko & manajemen seluruh user.
+  admin: {
+    dashboard: new Set<Action>(['view']),
+    pengguna: ALL,
+  },
+  // Pemilik toko: seluruh menu toko + kelola user (kasir/gudang).
+  owner: {
+    dashboard: new Set<Action>(['view']),
+    produk: ALL,
+    gudang: ALL,
+    'stock-in': new Set<Action>(['view', 'create']),
+    cashier: new Set<Action>(['view', 'create', 'delete']),
+    laporan: new Set<Action>(['view']),
+    pengguna: ALL,
+  },
+  kasir: {
+    // Transaksi (tanpa hapus), cek produk & stok, closing sendiri.
+    cashier: new Set<Action>(['view', 'create']),
+    produk: new Set<Action>(['view']),
+    gudang: new Set<Action>(['view']),
+    laporan: new Set<Action>(['view']),
+  },
+  gudang: {
+    'stock-in': new Set<Action>(['view', 'create']),
+    produk: new Set<Action>(['view', 'create']),
+    gudang: new Set<Action>(['view']),
+  },
+  guest: {},
+};
 
 /** Apakah `role` boleh melakukan `action` pada `menu`. */
 export function can(role: Role, menu: Menu, action: Action = 'view'): boolean {
-  if (role === 'admin') return true;
-  return NON_ADMIN[role]?.[menu]?.has(action) ?? false;
+  return ACL[role]?.[menu]?.has(action) ?? false;
 }
 
 /** Apakah `role` boleh membuka (view) sebuah menu. */

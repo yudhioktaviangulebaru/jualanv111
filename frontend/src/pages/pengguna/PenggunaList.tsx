@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'preact/hooks';
 import { RiAddLine, RiSearchLine, RiEyeLine } from '@remixicon/react';
 import { useUsers } from '@/hooks/useUsers';
-import { roleLabel } from '@/auth/permissions';
+import { useAuth } from '@/auth/AuthContext';
+import { roleLabel, normalizeRole } from '@/auth/permissions';
 import {
   buttonClass,
   inputClass,
@@ -13,6 +14,8 @@ import {
 
 export function PenggunaList() {
   const { data, loading, error, reload } = useUsers();
+  const { user } = useAuth();
+  const isAdmin = normalizeRole(user?.role) === 'admin';
   const [q, setQ] = useState('');
 
   const filtered = useMemo(() => {
@@ -31,7 +34,11 @@ export function PenggunaList() {
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="m-0 mb-1 text-2xl font-semibold">Pengguna</h2>
-          <p class="m-0 text-muted">Kelola akun pengguna pada worksheet ini.</p>
+          <p class="m-0 text-muted">
+            {isAdmin
+              ? 'Kelola seluruh akun pengguna lintas toko.'
+              : 'Kelola akun pengguna pada toko Anda.'}
+          </p>
         </div>
         <a href="/pengguna/create" class={buttonClass('primary')}>
           <RiAddLine size={18} />
@@ -76,6 +83,7 @@ export function PenggunaList() {
                   <th class="px-4 py-3 font-medium">Nama</th>
                   <th class="px-4 py-3 font-medium">Email</th>
                   <th class="px-4 py-3 font-medium">Role</th>
+                  {isAdmin && <th class="px-4 py-3 font-medium">Toko</th>}
                   <th class="px-4 py-3 text-right font-medium">Aksi</th>
                 </tr>
               </thead>
@@ -97,6 +105,14 @@ export function PenggunaList() {
                     <td class="px-4 py-3">
                       <RoleBadge role={u.role} />
                     </td>
+                    {isAdmin && (
+                      <td
+                        class="max-w-[14rem] truncate px-4 py-3 text-muted"
+                        title={u.worksheet_url}
+                      >
+                        {u.worksheet_url || '—'}
+                      </td>
+                    )}
                     <td class="px-4 py-3">
                       <div class="flex justify-end gap-1">
                         <a

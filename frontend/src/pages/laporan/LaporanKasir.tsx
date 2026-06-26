@@ -54,7 +54,8 @@ export function LaporanKasir() {
   const { user } = useAuth();
   const { role } = usePermissions();
 
-  const isOwner = role === 'admin';
+  // Owner melihat seluruh kasir; kasir hanya closing miliknya sendiri.
+  const isOwner = role === 'owner';
   const [day, setDay] = useState(today());
 
   /** Nama kasir per id (dari daftar user satu worksheet). */

@@ -33,7 +33,7 @@ export function PenggunaCreate() {
 
       <h2 class="mb-1 text-2xl font-semibold">Tambah Pengguna</h2>
       <p class="mb-6 text-muted">
-        Pengguna baru otomatis terhubung ke worksheet Anda.
+        Tambahkan akun pengguna sesuai role yang diizinkan.
       </p>
 
       <Card class="p-6">
